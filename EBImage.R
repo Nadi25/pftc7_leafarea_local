@@ -382,3 +382,106 @@ print(leaf_areas)
 
 ## figure out what to do with the weird scans
 
+
+# Initialize a data frame to store image file names and their corresponding leaf areas
+output_data <- data.frame(Image = basename(list.of.files), Leaf_Area = leaf_areas)
+
+# Define the output CSV file path
+output_csv <- file.path(output_folder, "leaf_areas_5.csv")
+
+# Write the data frame to a CSV file
+write.csv(output_data, file = output_csv, row.names = FALSE)
+
+# Print a message indicating that the CSV file has been created
+cat("Leaf areas have been saved to:", output_csv, "\n")
+
+
+
+
+
+# folder 6 ----------------------------------------------------------------
+
+# Directory containing JPEG files
+folder_path <- "raw_scans/6/"
+
+# List JPEG files in the folder
+list.of.files <- dir(path = folder_path, pattern = "jpeg|jpg", full.names = TRUE)
+
+# Initialize a list to store leaf areas
+leaf_areas <- numeric(length(list.of.files))
+
+# Output folder for segmented images
+output_folder <- "output/output_EBI/6_otsu/"
+dir.create(output_folder, showWarnings = FALSE)  # Create output folder if it doesn't exist
+
+# Loop through each JPEG file
+for (i in seq_along(list.of.files)) {
+  # Read the image
+  img <- readImage(list.of.files[i])
+
+  # Get the file name without the extension
+  file_name <- tools::file_path_sans_ext(basename(list.of.files[i]))
+
+  # Define the output file path
+  output_path <- file.path(output_folder, basename(list.of.files[i]))
+
+  # Get the dimensions of the image
+  img_dims <- dim(img)
+
+  # Define the cropping dimensions
+  crop_top <- 10
+  crop_bottom <- min(2400, img_dims[1])  # Ensure the bottom crop does not exceed image height
+  crop_left <- 1550
+  crop_right <- min(3513, img_dims[2])  # Ensure the right crop does not exceed image width
+
+  # Crop the image
+  img_crop <- img[crop_top:crop_bottom, crop_left:crop_right, ]
+
+  # Convert the image to grayscale
+  grey_img <- channel(img_crop, "grey")
+
+  # Set threshold using Otsu's method
+  threshold <- otsu(grey_img)
+  threshold_img <- combine(mapply(function(frame, th) frame > th, getFrames(grey_img), threshold, SIMPLIFY=FALSE))
+
+  # Perform segmentation
+  segmented_img <- bwlabel(threshold_img)
+
+  # Calculate leaf area
+  leaf_area <- computeFeatures.shape(segmented_img)[, "s.area"]
+
+  # Store the leaf area
+  leaf_areas[i] <- sum(leaf_area)
+
+  # Save the segmented image
+  writeImage(segmented_img, output_path)
+}
+
+print(leaf_areas)
+
+## save area in csv file
+
+# Define the resolution of the images in dots per inch (dpi)
+dpi <- 300
+
+# Convert the leaf areas from pixels to square millimeters
+leaf_areas_mm2 <- (leaf_areas / dpi^2) * 25.4^2
+
+# Update the 'Leaf_Area' column in the output data frame
+output_data$Leaf_Area_mm2 <- leaf_areas_mm2
+
+# Define the output CSV file path with the updated name
+output_csv_mm2 <- file.path(output_folder, "leaf_areas_6_mm2.csv")
+
+# Write the updated data frame to a new CSV file
+write.csv(output_data, file = output_csv_mm2, row.names = FALSE)
+
+# Print a message indicating that the new CSV file has been created
+cat("Leaf areas (in square millimeters) have been saved to:", output_csv_mm2, "\n")
+
+leaf_area_6 <- read.csv("output/output_EBI/6_otsu/leaf_areas_6_mm2.csv")
+leaf_area_6
+
+
+
+
