@@ -1,3 +1,8 @@
+
+# Calculate leaf areas with EBImage ---------------------------------------
+# author: Nadine Arzt
+# date: 29.04.24
+
 # install.packages("BiocManager")
 # BiocManager::install("EBImage")
 
@@ -183,73 +188,6 @@ for (i in seq_along(list.of.files)) {
 
 print(leaf_areas)
 
-
-
-# trying ----------------------------------------------------------------
-
-
-# Directory containing JPEG files
-folder_path <- "raw_scans/5/"
-
-# List JPEG files in the folder
-list.of.files <- dir(path = folder_path, pattern = "jpeg|jpg", full.names = TRUE)
-
-# Initialize a list to store leaf areas
-leaf_areas <- numeric(length(list.of.files))
-
-# Output folder for segmented images
-output_folder <- "output/output_EBI/5/"
-dir.create(output_folder, showWarnings = FALSE)  # Create output folder if it doesn't exist
-
-# Loop through each JPEG file
-for (i in seq_along(list.of.files)) {
-  # Read the image
-  img <- readImage(list.of.files[i])
-
-  # Get the file name without the extension
-  file_name <- tools::file_path_sans_ext(basename(file_path))
-
-  # Define the output file path
-  output_path <- file.path(output_folder, basename(file_path))
-
-  # Get the dimensions of the image
-  img_dims <- dim(img)
-
-  # Define the cropping dimensions
-  crop_top <- 100
-  crop_bottom <- min(2400, img_dims[1])  # Ensure the bottom crop does not exceed image height
-  crop_left <- 1550
-  crop_right <- min(3513, img_dims[2])  # Ensure the right crop does not exceed image width
-
-  # Crop the image
-  img_crop <- img[crop_top:crop_bottom, crop_left:crop_right, ]
-
-  # Convert the image to grayscale
-  grey_img <- channel(img_crop, "grey")
-
-  # Set threshold manually or using an automatic method
-  threshold <- otsu(grey_img)
-  threshold_img <- combine( mapply(function(frame, th) frame > th, getFrames(grey_img), threshold, SIMPLIFY=FALSE) )
-
-
-
-  # Perform segmentation
-  segmented_img <- bwlabel(threshold_img)
-
-  # Calculate leaf area
-  leaf_area <- computeFeatures.shape(segmented_img)[, "s.area"]
-
-  # Store the leaf area
-  leaf_areas[i] <- sum(leaf_area)
-
-  # Save the segmented image with leaf area highlighted
-  output_path <- file.path(output_folder, paste0("segmented_image_", i, ".jpeg"))
-  writeImage(segmented_img, output_path)
-}
-
-print(leaf_areas)
-
-## but this code saves the images with the name "segmented_image"
 
 # Folder 5 set manual threshold on 0.7 ----------------------------------------
 
