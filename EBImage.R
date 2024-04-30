@@ -250,12 +250,10 @@ for (file_path in list.of.files) {
 
 print(leaf_areas)
 
-## you should crop it a bit more on the left side
+## crop it a bit more on the left side
 
 
 # Folder 5 set otsu autothreshold -------------------------------------------------
-
-library(EBImage)
 
 # Directory containing JPEG files
 folder_path <- "raw_scans/5/"
@@ -329,10 +327,6 @@ output_csv <- file.path(output_folder, "leaf_areas_5.csv")
 
 # Write the data frame to a CSV file
 write.csv(output_data, file = output_csv, row.names = FALSE)
-
-# Print a message indicating that the CSV file has been created
-cat("Leaf areas have been saved to:", output_csv, "\n")
-
 
 
 
@@ -413,9 +407,6 @@ output_csv_mm2 <- file.path(output_folder, "leaf_areas_6_mm2.csv")
 
 # Write the updated data frame to a new CSV file
 write.csv(output_data, file = output_csv_mm2, row.names = FALSE)
-
-# Print a message indicating that the new CSV file has been created
-cat("Leaf areas (in square millimeters) have been saved to:", output_csv_mm2, "\n")
 
 leaf_area_6 <- read.csv("output/output_EBI/6_otsu/leaf_areas_6_mm2.csv")
 leaf_area_6
