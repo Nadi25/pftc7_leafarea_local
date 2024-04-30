@@ -144,7 +144,7 @@ leaf_areas <- numeric(length(list.of.files))
 
 # Output folder for segmented images
 output_folder <- "test/output"
-dir.create(output_folder, showWarnings = FALSE)  # Create output folder if it doesn't exist
+dir.create(output_folder, showWarnings = FALSE)
 
 # Loop through each JPEG file
 for (i in seq_along(list.of.files)) {
@@ -204,7 +204,7 @@ leaf_areas <- numeric(length(list.of.files))
 
 # Output folder for segmented images
 output_folder <- "output/output_EBI/5/"
-dir.create(output_folder, showWarnings = FALSE)  # Create output folder if it doesn't exist
+dir.create(output_folder, showWarnings = FALSE)
 
 # Loop through each JPEG file
 for (file_path in list.of.files) {
@@ -266,7 +266,7 @@ leaf_areas <- numeric(length(list.of.files))
 
 # Output folder for segmented images
 output_folder <- "output/output_EBI/5_otsu/"
-dir.create(output_folder, showWarnings = FALSE)  # Create output folder if it doesn't exist
+dir.create(output_folder, showWarnings = FALSE)
 
 # Loop through each JPEG file
 for (i in seq_along(list.of.files)) {
