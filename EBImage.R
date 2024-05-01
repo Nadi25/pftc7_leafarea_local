@@ -414,3 +414,81 @@ leaf_area_6
 
 
 
+# write a function --------------------------------------------------------
+
+library(EBImage)
+library(purrr)
+
+leaf_area_EBImage <- function(folder_path, output_folder) {
+  # List JPEG files in the folder
+  list.of.files <- dir(path = folder_path, pattern = "jpeg|jpg", full.names = TRUE)
+
+  # Initialize a list to store leaf areas
+  leaf_areas <- numeric(length(list.of.files))
+
+  # Create the output folder if it doesn't exist
+  dir.create(output_folder, showWarnings = FALSE)
+
+  # Function to process each image
+  process_image <- function(file_path) {
+    # Read the image
+    img <- readImage(file_path)
+
+    # Get the file name without the extension
+    file_name <- tools::file_path_sans_ext(basename(file_path))
+
+    # Define the output file path
+    output_path <- file.path(output_folder, basename(file_path))
+
+    # Get the dimensions of the image
+    img_dims <- dim(img)
+
+    # Define the cropping dimensions
+    crop_top <- 10
+    crop_bottom <- min(2400, img_dims[1])  # Ensure the bottom crop does not exceed image height
+    crop_left <- 1750
+    crop_right <- min(3513, img_dims[2])  # Ensure the right crop does not exceed image width
+
+    # Crop the image
+    img_crop <- img[crop_top:crop_bottom, crop_left:crop_right, , drop = FALSE]  # Include 'drop = FALSE' to handle multiple frames
+
+    # Convert the image to grayscale
+    grey_img <- channel(img_crop, "grey")
+
+    # Set threshold using Otsu's method
+    threshold <- otsu(grey_img)
+    threshold_img <- grey_img > threshold
+
+    # Perform segmentation
+    segmented_img <- bwlabel(threshold_img)
+
+    # Calculate leaf area
+    leaf_area <- sum(computeFeatures.shape(segmented_img)[, "s.area"], na.rm = TRUE)  # Sum of all areas
+
+    # Save the segmented image
+    writeImage(segmented_img, output_path)
+
+    # Return the leaf area
+    return(leaf_area)
+  }
+
+  # Process each image in the folder and store the leaf areas
+  leaf_areas <- map_dbl(list.of.files, process_image)
+
+  # Return the leaf areas
+  return(leaf_areas)
+}
+
+# Usage example:
+folder_path <- "test/"
+output_folder <- "test/output/"
+leaf_areas <- leaf_area_EBImage(folder_path, output_folder)
+print(leaf_areas)
+
+
+
+
+
+
+
+
