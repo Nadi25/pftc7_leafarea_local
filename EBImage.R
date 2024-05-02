@@ -412,9 +412,7 @@ leaf_area_6 <- read.csv("output/output_EBI/6_otsu/leaf_areas_6_mm2.csv")
 leaf_area_6
 
 
-
-
-# write a function --------------------------------------------------------
+# function to calculate leaf area in mm2 and save table with image name ------------------------------
 
 library(EBImage)
 library(purrr)
@@ -434,7 +432,7 @@ leaf_area_EBImage <- function(folder_path, output_folder) {
     # Read the image
     img <- readImage(file_path)
 
-    # Get the file name without the extension
+    # Get the file name
     file_name <- tools::file_path_sans_ext(basename(file_path))
 
     # Define the output file path
@@ -457,23 +455,35 @@ leaf_area_EBImage <- function(folder_path, output_folder) {
 
     # Set threshold using Otsu's method
     threshold <- otsu(grey_img)
-    threshold_img <- grey_img > threshold
+    threshold_img <- grey_img >= threshold
 
     # Perform segmentation
-    segmented_img <- bwlabel(threshold_img)
+    segmented_img <- bwlabel(!threshold_img)
+    # by using ! the background is black and the area of the leaf can be calculated instead of the area of the background minus the leaf
 
-    # Calculate leaf area
-    leaf_area <- sum(computeFeatures.shape(segmented_img)[, "s.area"], na.rm = TRUE)  # Sum of all areas
+    # Calculate leaf area in pixels
+    leaf_area_pixels <- sum(computeFeatures.shape(segmented_img)[, "s.area"], na.rm = TRUE)
+
+    # Convert leaf area to mm^2 (assuming known pixel-to-mm conversion factor)
+    dpi <- 300
+    leaf_area_mm2 <- (leaf_area_pixels / dpi^2) * 25.4^2
 
     # Save the segmented image
-    writeImage(segmented_img, output_path)
+    writeImage(threshold_img, output_path) # save the image with white background (threshold_img)
 
-    # Return the leaf area
-    return(leaf_area)
+    # Return the leaf area in mm^2
+    return(leaf_area_mm2)
   }
 
   # Process each image in the folder and store the leaf areas
   leaf_areas <- map_dbl(list.of.files, process_image)
+
+  # Create a data frame with image names and corresponding leaf areas in mm^2
+  leaf_areas_df <- data.frame(Image = basename(list.of.files), Leaf_Area_mm2 = leaf_areas)
+
+  # Write the leaf areas to a CSV file
+  output_csv <- file.path(output_folder, "leaf_areas_mm2.csv")
+  write.csv(leaf_areas_df, file = output_csv, row.names = FALSE)
 
   # Return the leaf areas
   return(leaf_areas)
@@ -485,10 +495,94 @@ output_folder <- "test/output/"
 leaf_areas <- leaf_area_EBImage(folder_path, output_folder)
 print(leaf_areas)
 
+leaf_areas_mm2 <- read.csv("test/output/leaf_areas_mm2.csv")
+leaf_areas_mm2
 
 
 
+# folder 5 ----------------------------------------------------------------
 
+library(EBImage)
+library(purrr)
 
+leaf_area_EBImage <- function(folder_path, output_folder) {
+  # List JPEG files in the folder
+  list.of.files <- dir(path = folder_path, pattern = "jpeg|jpg", full.names = TRUE)
 
+  # Initialize a list to store leaf areas
+  leaf_areas <- numeric(length(list.of.files))
+
+  # Create the output folder if it doesn't exist
+  dir.create(output_folder, showWarnings = FALSE)
+
+  # Function to process each image
+  process_image <- function(file_path) {
+    # Read the image
+    img <- readImage(file_path)
+
+    # Get the file name
+    file_name <- tools::file_path_sans_ext(basename(file_path))
+
+    # Define the output file path
+    output_path <- file.path(output_folder, basename(file_path))
+
+    # Get the dimensions of the image
+    img_dims <- dim(img)
+
+    # Define the cropping dimensions
+    crop_top <- 10
+    crop_bottom <- min(2400, img_dims[1])  # Ensure the bottom crop does not exceed image height
+    crop_left <- 1750
+    crop_right <- min(3513, img_dims[2])  # Ensure the right crop does not exceed image width
+
+    # Crop the image
+    img_crop <- img[crop_top:crop_bottom, crop_left:crop_right, , drop = FALSE]  # Include 'drop = FALSE' to handle multiple frames
+
+    # Convert the image to grayscale
+    grey_img <- channel(img_crop, "grey")
+
+    # Set threshold using Otsu's method
+    threshold <- otsu(grey_img)
+    threshold_img <- grey_img >= threshold
+
+    # Perform segmentation
+    segmented_img <- bwlabel(!threshold_img)
+    # by using ! the background is black and the area of the leaf can be calculated instead of the area of the background minus the leaf
+
+    # Calculate leaf area in pixels
+    leaf_area_pixels <- sum(computeFeatures.shape(segmented_img)[, "s.area"], na.rm = TRUE)
+
+    # Convert leaf area to mm^2 (assuming known pixel-to-mm conversion factor)
+    dpi <- 300
+    leaf_area_mm2 <- (leaf_area_pixels / dpi^2) * 25.4^2
+
+    # Save the segmented image
+    writeImage(threshold_img, output_path) # save the image with white background (threshold_img)
+
+    # Return the leaf area in mm^2
+    return(leaf_area_mm2)
+  }
+
+  # Process each image in the folder and store the leaf areas
+  leaf_areas <- map_dbl(list.of.files, process_image)
+
+  # Create a data frame with image names and corresponding leaf areas in mm^2
+  leaf_areas_df <- data.frame(Image = basename(list.of.files), Leaf_Area_mm2 = leaf_areas)
+
+  # Write the leaf areas to a CSV file
+  output_csv <- file.path(output_folder, "leaf_areas_mm2.csv")
+  write.csv(leaf_areas_df, file = output_csv, row.names = FALSE)
+
+  # Return the leaf areas
+  return(leaf_areas)
+}
+
+# Usage example:
+folder_path <- "raw_scans/5/"
+output_folder <- "output/output_EBI/5_images/"
+leaf_areas <- leaf_area_EBImage(folder_path, output_folder)
+print(leaf_areas)
+
+leaf_areas_mm2_5 <- read.csv("output/output_EBI/5_images/leaf_areas_mm2.csv")
+leaf_areas_mm2_5
 
