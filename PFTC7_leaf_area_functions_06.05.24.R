@@ -15,11 +15,8 @@ prepare_images <- function(folder_path, output_folder_prep) {
     # Read the image
     img <- readImage(file_path)
 
-    # Get the file name
-    file_name <- tools::file_path_sans_ext(basename(file_path))
-
     # Define the output file path for the cropped image with original name
-    output_path <- file.path(output_folder_prep, paste0(file_name, ".jpeg"))
+    output_path <- file.path(output_folder_prep, basename(file_path))
 
     # Get the dimensions of the image
     img_dims <- dim(img)
@@ -54,7 +51,7 @@ process_image_leaf_area <- function(list_of_files, output_folder_proc){
     # Read the cropped image
     img <- readImage(.x)
 
-    # Convert the image to grayscale
+    # Convert the image to bluescale
     blue_img <- channel(img, "blue")
 
     # Convert to 8-bits (hopefully)
