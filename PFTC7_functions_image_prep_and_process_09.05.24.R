@@ -38,6 +38,82 @@ prep_image <- function(folder_path, output_folder) {
   return(list_prep_images)
 }
 
+## function to get leaf area but exclude small particles
+process_image_leaf_area <- function(list_prep_images, output_folder, min_area_mm2 = 1) {
+  # Initialize an empty data frame to store results
+  results_df <- data.frame(Image = character(), leaf_area_mm2 = numeric())
+
+  # Process each cropped image
+  map(list_prep_images, ~ {
+    # Read the cropped image
+    img <- readImage(.x)
+
+    # Convert the image to bluescale
+    blue_img <- channel(img, "blue")
+
+    # Convert to 8-bits (hopefully)
+    data <- round(blue_img * 256)
+
+    # Set threshold using autothresh method
+    threshold <- autothresholdr::auto_thresh(data, method = "Otsu") / 256
+    threshold_img <- blue_img >= threshold
+
+    # Perform segmentation
+    segmented_img <- bwlabel(!threshold_img)
+
+    # Calculate leaf area in pixels
+    leaf_areas <- computeFeatures.shape(segmented_img)[, "s.area"]
+
+    # Convert leaf area to mm^2 (assuming known pixel-to-mm conversion factor)
+    dpi <- 300
+    leaf_areas_mm2 <- (leaf_areas / dpi^2) * 25.4^2
+
+    # Filter out small particles
+    filtered_leaf_areas_mm2 <- leaf_areas_mm2[leaf_areas_mm2 >= min_area_mm2]
+
+    # Count the number of patches detected (particles larger than min_area_mm2)
+    num_patches <- length(filtered_leaf_areas_mm2)
+
+    # Calculate total leaf area
+    total_leaf_area_mm2 <- sum(filtered_leaf_areas_mm2)
+
+    # Save the segmented image
+    output_path <- file.path(output_folder, basename(.x))
+    writeImage(threshold_img, output_path) # save the image with original name
+
+    # Add results to the data frame
+    results_df <<- rbind(results_df, data.frame(Image = basename(.x),
+                                                num_patches = num_patches,
+                                                total_leaf_area_mm2 = total_leaf_area_mm2))
+
+    # Print leaf area
+    cat("Number of patches detected for", basename(.x), ":", num_patches, "\n")
+    cat("Total leaf area for", basename(.x), ":", total_leaf_area_mm2, "mm^2\n")
+  })
+
+  # Write results to a CSV file
+  output_csv <- file.path(output_folder, "leaf_areas_summary.csv")
+  write.csv(results_df, file = output_csv, row.names = FALSE)
+
+  # Return the results data frame
+  return(results_df)
+}
+
+
+folder_path <- "test/"
+output_folder <- "test/output_otsu_new/"
+list_prep_images <- prep_image(folder_path, output_folder)
+list_prep_images
+result <- process_image_leaf_area(list_prep_images, output_folder)
+result
+
+
+
+
+
+
+
+# playing with code -------------------------------------------------------
 
 process_image_leaf_area <- function(list_prep_images, output_folder) {
   # Initialize an empty data frame to store results
@@ -62,7 +138,8 @@ process_image_leaf_area <- function(list_prep_images, output_folder) {
     segmented_img <- bwlabel(!threshold_img)
 
     # Calculate leaf area in pixels
-    leaf_area_pixels <- sum(computeFeatures.shape(segmented_img)[, "s.area"], na.rm = TRUE)
+    # leaf_area_pixels <- sum(computeFeatures.shape(segmented_img)[, "s.area"], na.rm = TRUE) ## calculate sum of areas per image
+    leaf_area_pixels <- computeFeatures.shape(segmented_img)[, "s.area"] ## keep all areas
 
     # Convert leaf area to mm^2 (assuming known pixel-to-mm conversion factor)
     dpi <- 300
@@ -87,12 +164,5 @@ process_image_leaf_area <- function(list_prep_images, output_folder) {
   return(results_df)
 }
 
-
-folder_path <- "test/"
-output_folder <- "test/output_otsu_new/"
-list_prep_images <- prep_image(folder_path, output_folder)
-list_prep_images
-result <- process_image_leaf_area(list_prep_images, output_folder)
-result
 
 
