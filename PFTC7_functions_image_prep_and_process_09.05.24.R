@@ -8,8 +8,8 @@ library(purrr)
 # function to calculate leaf area from a folder of jpeg images ------------
 
 leaf_area_calculation <- function(folder_path, output_folder, method = "Otsu",
-                                  crop_top = 10, crop_bottom = 2400,
-                                  crop_left = 1750, crop_right = 3513) {
+                                  crop_top = 20, crop_bottom = 2440,
+                                  crop_left = 1588, crop_right = 3513) {
   # List JPEG files in the folder
   list.of.files <- dir(path = folder_path, pattern = "jpeg", full.names = TRUE)
 
