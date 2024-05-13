@@ -7,9 +7,7 @@ library(purrr)
 
 # function to calculate leaf area from a folder of jpeg images ------------
 
-leaf_area_calculation <- function(folder_path, output_folder, method = "Otsu",
-                                  crop_top = 20, crop_bottom = 2440,
-                                  crop_left = 1588, crop_right = 3513) {
+leaf_area_calculation <- function(folder_path, output_folder, method = "Otsu") {
   # List JPEG files in the folder
   list.of.files <- dir(path = folder_path, pattern = "jpeg", full.names = TRUE)
 
@@ -18,17 +16,8 @@ leaf_area_calculation <- function(folder_path, output_folder, method = "Otsu",
     # Read the image
     img <- readImage(.x)
 
-    # Get the dimensions of the image
-    img_dims <- dim(img)
-
-    # Define the cropping dimensions
-    crop_top <- crop_top
-    crop_bottom <- min(crop_bottom, img_dims[1])  # Ensure the bottom crop does not exceed image height
-    crop_left <- crop_left
-    crop_right <- min(crop_right, img_dims[2])  # Ensure the right crop does not exceed image width
-
-    # Crop the image
-    img_crop <- img[crop_top:crop_bottom, crop_left:crop_right, , drop = FALSE ]
+    # crop image
+    img_crop <- crop_image(img = img)
 
     # process image to get leaf area
     process_image_leaf_area(img = img_crop, output_folder = output_folder, img_file = .x, method = method)
@@ -36,12 +25,30 @@ leaf_area_calculation <- function(folder_path, output_folder, method = "Otsu",
   }) |>
     list_rbind()
 
-  # Return the list of prepared file paths
+  # Return the results of leaf area
   leaf_areas
 }
 
 
-# function to calculate leaf area -------------
+# function to crop images -------------------------------------------------
+
+crop_image <- function(img, crop_top = 20, crop_bottom = 2440,
+                       crop_left = 1588, crop_right = 3513){
+  # Get the dimensions of the image
+  img_dims <- dim(img)
+
+  # Define the cropping dimensions
+  crop_top <- crop_top
+  crop_bottom <- min(crop_bottom, img_dims[1])  # Ensure the bottom crop does not exceed image height
+  crop_left <- crop_left
+  crop_right <- min(crop_right, img_dims[2])  # Ensure the right crop does not exceed image width
+
+  # Crop the image
+  img_crop <- img[crop_top:crop_bottom, crop_left:crop_right, , drop = FALSE ]
+
+}
+
+# function to calculate leaf area ----------------------------------------------
 # method can be chosen
 # exclude small particles
 
@@ -82,8 +89,8 @@ process_image_leaf_area <- function(img, method = "Otsu", dpi = 300, min_area_mm
     total_leaf_area_cm2 <- round(total_leaf_area_mm2/100, 3)
 
     # Save the segmented image
-    output_path <- file.path(output_folder, basename(img_file))
-    writeImage(threshold_img, output_path) # save the image with original name
+    output_path <- file.path(output_folder, basename(img_file)) # save the image with original name
+    writeImage(threshold_img, output_path)
 
     # Add results to the data frame
     data.frame(Image = basename(img_file),
